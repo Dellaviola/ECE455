@@ -9,144 +9,13 @@
 #include "../FreeRTOS_Source/include/semphr.h"
 #include "../FreeRTOS_Source/include/task.h"
 #include "../FreeRTOS_Source/include/timers.h"
+#include "../FreeRTOS_Source/include/event_groups.h"
 
 /* Library includes. */
 #include "../Libraries/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_adc.h"
 #include "../Libraries/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_spi.h"
 #include "../Libraries/STM32F4xx_StdPeriph_Driver/inc/stm32f4xx_gpio.h"
-
-// Small delay function (Testing)
-void delay(int d)
-{
-	int j = 0;
-	while(++j < d);
-}
-
-// Initialize GPIO and ADC and SPI
-void GPIO_ADC_Init(void)
-{
-	// Structures for ADC and GPIO
-	ADC_InitTypeDef ADC_InitStructure;
-	GPIO_InitTypeDef GPIO_InitStructure;
-	ADC_CommonInitTypeDef ADC_CommonInitStructure;
-
-	// Enable ADC Clock
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-
-	// Enable GPIOD Clock for ADC
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-
-	// Initialize GPIO for ADC
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-
-	// Initializing GPIO
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-	// Initialize Common ADC
-	ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
-	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
-	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
-	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
-	ADC_CommonInit(&ADC_CommonInitStructure);
-
-	// ADC1 Structure
-	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
-	ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
-	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
-	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_NbrOfConversion = 1;
-
-	// Initializing ADC
-	ADC_Init(ADC1, &ADC_InitStructure);
-
-	// Set Channel for ADC
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_11, 1, ADC_SampleTime_144Cycles);
-
-	// Enable ADC1
-	ADC_Cmd(ADC1, ENABLE);
-}
-
-void GPIOB_Init(void)
-{
-   /*
-	* PB3 --> SCK
-	* PB4 --> LCK
-	* PB5 --> MOSI
-	*/
-
-	// Enable clock
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-
-	// Set up SCK & MOSI
-	GPIO_InitTypeDef GPIO_InitStruct;
-	GPIO_InitStruct.GPIO_Pin	= GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
-	GPIO_InitStruct.GPIO_Mode	= GPIO_Mode_AF;
-	GPIO_InitStruct.GPIO_Speed	= GPIO_Speed_50MHz;
-	GPIO_InitStruct.GPIO_OType	= GPIO_OType_PP;
-	GPIO_InitStruct.GPIO_PuPd	= GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-	// Set alternate functions
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_SPI1);
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_SPI1);
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_SPI1);
-
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4;
-	GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource4, GPIO_AF_SPI1);
-
-	GPIOA->BSRRL |= GPIO_Pin_4;
-}
-
-void SPI1_Init(void)
-{
-	// Initialize SPI1 Clock
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-
-	SPI_InitTypeDef SPI_InitStructInfo = {
-			.SPI_Direction 			= SPI_Direction_1Line_Tx,
-			.SPI_Mode 				= SPI_Mode_Master,
-			.SPI_DataSize 			= SPI_DataSize_8b,
-			.SPI_CPOL 				= SPI_CPOL_Low,
-			.SPI_CPHA 				= SPI_CPHA_1Edge,
-			.SPI_NSS 				= SPI_NSS_Soft,
-			.SPI_BaudRatePrescaler 	= SPI_BaudRatePrescaler_256,
-			.SPI_FirstBit 			= SPI_FirstBit_MSB,
-	};
-
-	SPI_Init(SPI1, &SPI_InitStructInfo);
-	SPI_Cmd(SPI1, ENABLE);
-}
-
-uint8_t Get_ADC_Value(void)
-{
-	ADC_SoftwareStartConv(ADC1);
-
-	while (!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC));
-
-	return ADC_GetConversionValue(ADC1);
-}
-
-void SPI1_Write(uint16_t data)
-{
-	// Wait until SPI1 is ready
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET){;}
-
-	// Send data
-	SPI_SendData(SPI1, data);
-
-	//Wait until SPI1 is not busy
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET){;}
-
-	delay(1000);
-}
+#include "init.h"
 
 /*-----------------------------------------------------------*/
 /* Global Variables */
@@ -156,127 +25,109 @@ void SPI1_Write(uint16_t data)
 #define LOW_TRAFFIC  1
 #define HIGH_TRAFFIC 2
 
+// Event Bits
+#define CHANGE_LIGHT ( 1 << 0 )
+#define ADD_CAR ( 1 << 1 )
+#define UPDATE_LIGHTS ( 1 << 2 )
+
 // Light States
-#define GREEN 	0
-#define YELLOW	1
-#define RED		2
+#define GREEN 	( 1 << 3 )
+#define YELLOW	( 1 << 4 )
+#define RED		( 1 << 5 )
 
-#define BIT_0 ( 1 << 0 )
-
-#define mainQUEUE_LENGTH 100
+//MASKS
+#define high_last 0b00000010
+#define mid_first 0b10000000
+#define mid_last 0b00000010
+#define mid_low 0b00000111
+#define green_tl 0b00110000
+#define yellow_tl 0b01010000
+#define red_tl 0b01100000
 
 static void Traffic_Flow_Task( void *pvParameters );
-static void Traffic_Creator_Task( uint8_t flow_rate );
-static void Traffic_Light_Task( uint8_t flow_rate );
+static void Traffic_Creator_Task( void *pvParameters );
+static void Traffic_Light_Task( void *pvParameters );
 static void Traffic_Display_Task( void *pvParameters );
 
+void vTrafficLightCallback( void* );
+void vCarCallback( void* );
+void vUpdateLightsCallback( void* );
+
 xQueueHandle Traffic_Flow_Queue = 0;
-xQueueHandle New_Cars_Queue = 0;
-xQueueHandle Light_Queue = 0;
-xQueueHandle Old_Cars_Queue = 0;
 SemaphoreHandle_t Flow_Semaphore;
-EventGroupHandle_t Change_Light_Flag;
+EventGroupHandle_t Event_Flags;
+TimerHandle_t xTimers[ 3 ];
 
 int main(void)
 {
 	// Initialize middleware
-	GPIOB_Init();
-	SPI1_Init();
-	GPIO_ADC_Init();
+	GPIOB_Init();					//GPIOB pins are configured for SPI
+	SPI1_Init();					//SPI configured for sending data to shift registers
+	GPIO_ADC_Init();				//ADC uses GPIOC for potentiometer
 
 	// Set up queues
-	Traffic_Flow_Queue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint8_t) );
-	New_Cars_Queue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint8_t) );
-	Light_Queue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint8_t) );
-	Old_Cars_Queue = xQueueCreate( mainQUEUE_LENGTH, sizeof( uint8_t) );
+	Traffic_Flow_Queue = xQueueCreate( 2, sizeof( uint8_t) );
 
 	// Add queues to registry for simplicity
 	vQueueAddToRegistry( Traffic_Flow_Queue, "FlowQueue");
-	vQueueAddToRegistry( New_Cars_Queue, "NewCarsQueue");
-	vQueueAddToRegistry( Light_Queue, "LightQueue");
-	vQueueAddToRegistry( Old_Cars_Queue, "OldCarsQueue");
 
 	// Set up semaphore
-	Flow_Semaphore = xSemaphoreCreateCount( 2, 0 );
+	Flow_Semaphore = xSemaphoreCreateCounting( 2, 0 );
 
 	// Set up Change Light Flag group
-	Change_Light_Flag = xEventGroupCreate();
+	Event_Flags = xEventGroupCreate();		//Event Flags are used to 
+		 	
+		//	Event Triggers
+		//	BIT:0 CHANGE_LIGHT		This event signals that the finite statemachine will change states
+		//	BIT:1 ADD_CAR 			This event signals that a car will be added to the end of the display
+		//	BIT:2 UPDATE_LIGHTS 	This event signals the LEDs to update the display
+
+		//	Finite States			The finite states are programmed such that only one is active at a time
+		//	BIT:3 GREEN				Free flowing traffic with a green light and long delay between state updates
+		//	BIT:4 YELLOW			Free flowing traffic with a yellow light and short delay between state updates
+		//	BIT:5 RED				Interrupted traffic flow with a red light and long delay between state updates		
+		
+
+														
+	// Set initial state to GREEN
+	xEventGroupSetBits( Event_Flags, GREEN );
+
+	// Set up Software Timers
+	xTimers[0] = xTimerCreate( "Car_Timer", pdMS_TO_TICKS( 1000 ), pdFALSE, ( void * ) 0, vCarCallback);
+	xTimers[1] = xTimerCreate( "TL_Timer", pdMS_TO_TICKS( 1000 ), pdFALSE, ( void * ) 0, vTrafficLightCallback);
+	xTimers[2] = xTimerCreate( "Update_Timer", pdMS_TO_TICKS( 750 ), pdTRUE, ( void * ) 0, vUpdateLightsCallback);
 
 	// Start tasks
-	xTaskCreate( Traffic_Flow_Task, "Traffic_Flow", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	xTaskCreate( Traffic_Flow_Task, "Traffic_Flow", configMINIMAL_STACK_SIZE, NULL, 1, NULL); 		
 	xTaskCreate( Traffic_Creator_Task, "Traffic_Creator", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
-	xTaskCreate( Traffic_Light_Task, "Traffic_Light", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
-	xTaskCreate( Traffic_Display_Task, "Traffic_Display", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	xTaskCreate( Traffic_Light_Task, "Traffic_Light", configMINIMAL_STACK_SIZE, NULL, 1, NULL);		
+	xTaskCreate( Traffic_Display_Task, "Traffic_Display", configMINIMAL_STACK_SIZE, NULL, 1, NULL);	
+
+		// The traffic flow task handles ADC conversions, and placing the converted values onto the traffic flow queue for use by other tasks
+		// The traffic creator task takes the flow value and calculates the period between car send events.
+		// The traffic light takes the flow value and calculates the time between state changes
+		// The traffic display task handles the statemachine and led output logic
+	
+	
+	// Start timers
+	for (int i = 0; i < 3; i++) {
+		xTimerStart( xTimers[i], 100);
+	}
 
 	// Start tasks and timers
 	vTaskStartScheduler();
 
-	while (1) {
-//		SPI1_Write(0xFF);
-//		SPI1_Write(0xED);
-//		SPI1_Write(0xBF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xFF);
-//		SPI1_Write(0xDC);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xFF);
-//		SPI1_Write(0xBA);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xFE);
-//		SPI1_Write(0xFA);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xFD);
-//		SPI1_Write(0xF6);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xFB);
-//		SPI1_Write(0xF6);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xF7);
-//		SPI1_Write(0xF6);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xEF);
-//		SPI1_Write(0xF6);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xDF);
-//		SPI1_Write(0xF6);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xBF);
-//		SPI1_Write(0xF6);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0x7F);
-//		SPI1_Write(0xF6);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
-//
-//		SPI1_Write(0xFF);
-//		SPI1_Write(0xF6);
-//		SPI1_Write(0xFF);
-//		delay(10000000);
+	while(1)
+	{
+		//program should not enter here...
 	}
 }
 /*-----------------------------------------------------------*/
 
 static void Traffic_Flow_Task( void *pvParameters )
 {
+	// This task gets the value from the ADC and puts it on a queue to be used by other tasks
+
 	uint32_t adc_value = 0;
 	uint8_t flow_rate = 0;
 
@@ -312,9 +163,7 @@ static void Traffic_Flow_Task( void *pvParameters )
 		// Use a semaphore to guard the resources (one for task 2 and one for task 3)
 		xSemaphoreGive( Flow_Semaphore );
 		xSemaphoreGive( Flow_Semaphore );
-
-		// Delay task
-		vTaskDelay(1000);
+		//TODO: semaphores do not operate as intended, consider removing.
 	}
 }
 
@@ -322,40 +171,40 @@ static void Traffic_Flow_Task( void *pvParameters )
 
 static void Traffic_Creator_Task( void *pvParameters )
 {
+
+	//This task changes the period between car additions
+
+	//TODO: add more flow rates, possibly using a direct calculation from the flow_rate
+
 	uint8_t flow_rate;
-	uint8_t ticks = 0;
 
 	while(1)
 	{
-		if ( xSemaphoreTask( Flow_Semaphore, ( TickType_t ) 10 ) == pdTRUE ) {
+		if ( xSemaphoreTake( Flow_Semaphore, ( TickType_t ) 10 ) == pdTRUE ) {
 			// Get flow rate from queue
-			if ( xQueueReceive(Traffic_Flow_Queue, &flow_rate, 500) ) {
+			if ( xQueueReceive(Traffic_Flow_Queue, &flow_rate, 0) ) {
 				// Create traffic based on flow rate
 				if (flow_rate == NO_TRAFFIC) {
 					// Off
 				} else if (flow_rate == LOW_TRAFFIC) {
 					// Low
-					if (ticks > 4) {
-						// Add a car
-
-						// Reset ticks
-						ticks = 0;
+					if ( xTimerIsTimerActive( xTimers[0] ) == pdFALSE ) {
+						xTimerChangePeriod( xTimers[0], pdMS_TO_TICKS( 4500 ), 0);
+							// Change traffic add rate to 4500 ms
 					}
 				} else if (flow_rate == HIGH_TRAFFIC) {
 					// High
-					if (ticks > 1) {
-						// Add a car
-
-						// Reset ticks
-						ticks = 0;
+					if ( xTimerIsTimerActive( xTimers[0] ) == pdFALSE ) {
+						xTimerChangePeriod( xTimers[0], pdMS_TO_TICKS( 2250 ), 0);
+							// Change traffic add rate to 2250 ms
 					}
 				}
 			}
+			taskYIELD();	// Yield the task. Necessary because semaphore is not functioning as intended
+							// Yielding forces scheduler to move onto other tasks
+							// Without the yield this task will empty the queue and cause unexpected behaviour when trying to change the traffic flow
+							// TODO: check preemption and time slicing options
 		}
-
-		// Update ticks & delay task
-		ticks++;
-		vTaskDelay(1000);
 	}
 }
 
@@ -363,46 +212,47 @@ static void Traffic_Creator_Task( void *pvParameters )
 
 static void Traffic_Light_Task( void *pvParameters )
 {
-	// Traffic Light states
-	// Sending (xx, xT, xx), T = TL bits
-	// Red 	  -> 011(0/1) -> 6/7
-	// Yellow -> 101(0/1) -> A/B
-	// Green  -> 110(0/1) -> C/D
+	// This task changes the period between state change events
 
 	uint8_t flow_rate;
-	uint16_t light_delay = 100;
-	uint8_t ticks = 0;
+	uint32_t new_period;
+	EventBits_t flags;
+	uint16_t tick_constant = 750;	//same as refresh rate TODO: move to define
 
 	while(1)
 	{
-		if ( xSemaphoreTask( Flow_Semaphore, ( TickType_t ) 10 ) == pdTRUE ) {
+		if ( xSemaphoreTake( Flow_Semaphore, ( TickType_t ) 10 ) == pdTRUE ) {
 			// Get flow rate from queue
-			if ( xQueueReceive(Traffic_Flow_Queue, &flow_rate, 500) ) {
+			if ( xQueueReceive(Traffic_Flow_Queue, &flow_rate, 0) ) {
+				// Get event flag bits
+				flags = xEventGroupGetBits( Event_Flags );
+
 				// Create traffic based on flow rate
 				if (flow_rate == NO_TRAFFIC) {
 					// Off
 					// Do nothing?
 				} else if (flow_rate == LOW_TRAFFIC) {
 					// Low
-					if (ticks > 5) {
-						// Update light to next state
-						xEventGroupSetBits( Change_Light_Flag, BIT_0);
+					if ( xTimerIsTimerActive( xTimers[1] ) == pdFALSE ) {
+						// Calculate new period
+						new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 13);
+
+						xTimerChangePeriod( xTimers[1], pdMS_TO_TICKS( new_period ), 0);
 					}
 				} else if (flow_rate == HIGH_TRAFFIC) {
 					// High
-					if (ticks > 3) {
-						// Update light to next state
-						xEventGroupSetBits( Change_Light_Flag, BIT_0);
+					if ( xTimerIsTimerActive( xTimers[1] ) == pdFALSE ) {
+						// Calculate new period
+						new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 8);
+
+						xTimerChangePeriod( xTimers[1], pdMS_TO_TICKS( new_period ), 0);
 					}
 				}
 			}
+			taskYIELD();	// Yield the task. Necessary because semaphore is not functioning as intended
+							// Yielding forces scheduler to move onto other tasks
+							// Without the yield this task will empty the queue and cause unexpected behaviour when trying to change the traffic flow.
 		}
-
-		// Update counter
-		ticks++;
-
-		// Delay task
-		vTaskDelay(light_delay);
 	}
 }
 
@@ -410,18 +260,186 @@ static void Traffic_Light_Task( void *pvParameters )
 
 static void Traffic_Display_Task( void *pvParameters )
 {
-	uint16_t light_state;
-	EventBits_t light_state_change;
+	// This task updates the led display, and handles state machine transitions
 
-	// Test code for detecting traffic light needs to change
-	light_state_change = xEventGroupGetBits( Change_Light_Flag );
+	EventBits_t flags;
+									// SPI output is separated into 3 Bytes for serial out
+	uint8_t high = 0b11111111;		// High byte contains 7 of the pre-traffic light leds
+	uint8_t mid = 0b11111111;		// Middle byte contains the last byte before the traffic light, the traffic light, and 3 of the post traffic light leds
+	uint8_t low = 0b11111111;		// Low byte contains 8 leds after the traffic light
 
-	// if BIT_0 of light_state_change is 1, change. otherwise nothing
-	// Clear bits if changed
-	// xEventGroupClearBits( Change_Light_Flag, BIT_0 );
+	uint8_t red_tick = 0;			//tracks number of refresh cycles with queued 'cars'
+	uint8_t mid_temp = 0;			//temp space for middle byte shifting logic
+	uint8_t shift_temp = 0;			//temp space used for high byte logic
 
+	while (1)
+	{
+		// Get event flag bits
+		flags = xEventGroupGetBits( Event_Flags );
+
+		if ((flags & UPDATE_LIGHTS) != 0) {			//wait for refresh event to enter the GREEN YELLOW RED finite state machine
+
+			if ((flags & GREEN) != 0)
+			{
+				// Low
+				// Shifted towards the right, MSB replaced with bit 1 of middle byte
+
+				red_tick = 0;		// FSM always goes from red state to green state
+				shift_temp = 0;		// Reset red_tick and shift_temp here
+				low = low>>1;						
+				low |= ((mid & mid_last) << 6);		
+
+				// Middle
+				// Shifted right, msb replaced with bit 1 of high byte, bit 3 replaced by bit 7
+
+				mid_temp = (mid & mid_first);	//store bit 7
+				mid = mid >> 1;					
+				mid &= mid_low;		//delete the 5 msbits				    	
+				mid |= (((high & high_last) << 6) | (green_tl) | (mid_temp >> 4)); 
+
+				// High
+				// Shifted right one, new car handler
+
+				high = high >> 1;
+				if ((flags & ADD_CAR) == 0) high |= mid_first;
+
+				// Change State Handler:
+				// Current State is Green, if change light event occurs, got to yellow state
+
+				if ((flags & CHANGE_LIGHT) != 0) {
+					xEventGroupClearBits( Event_Flags, GREEN );
+					xEventGroupSetBits( Event_Flags, YELLOW );
+
+					// Clear change bit
+					xEventGroupClearBits( Event_Flags, CHANGE_LIGHT );
+				}
+			}
+
+
+			else if ((flags & YELLOW) != 0)
+			{
+
+				low = low>>1;						//move low over
+				low |= ((mid & mid_last) << 6);		//add the first bit in
+
+
+				mid_temp = (mid & mid_first);
+				mid = mid >> 1;						//move mid over
+				mid &= mid_low;				    	//clear the top 5 bits of mid
+				mid |= (((high & high_last) << 6) | (yellow_tl) | (mid_temp >> 4));
+
+				high = high >> 1;
+				if ((flags & ADD_CAR) == 0) high |= mid_first;
+
+				// Change State Handler:
+				// Current State is yellow, if change light event occurs, got to red state
+
+				if ((flags & CHANGE_LIGHT) != 0) {
+					xEventGroupClearBits( Event_Flags, YELLOW );
+					xEventGroupSetBits( Event_Flags, RED );
+
+					// Clear change bit
+					xEventGroupClearBits( Event_Flags, CHANGE_LIGHT );
+				}
+			}
+
+
+			else if ((flags & RED) != 0)
+			{
+
+				low = low>>1;						//move low over
+				low |= ((mid & mid_last) << 6);		//add the first bit in
+
+
+				mid = mid >> 1;						//move mid over
+				mid &= mid_low;				    	//clear the top 5 bits of mid
+
+				mid |= (1<<3);						//light immediately after traffic light is off
+
+				if (!red_tick) mid |= ((high & high_last) << 6); //if we arent building up traffic move last bit of high over
+
+				mid |= red_tl;									//update the traffic light colour
+
+				if (!(mid & mid_first)) red_tick++;				//check the first bit to determine state of traffic buildup
+																//if mid_7 is low then we need to build up traffic in the high byte
+				high = high >> 1;								//shift high over 1
+				if ((flags & ADD_CAR) == 0) high |= mid_first;	//check the add_car condition
+
+				
+				/*	the below segment is responsible for building up traffic behind a red light
+					accomplished by checking that a car is queued... if(red_tick)
+					shift_temp tracks the end of the traffic queue
+					when the sequence 010 is detected as the high byte approaches the end of the queue
+					the end of the queue is updated	and a 0 is moved onto the end
+				*/ 
+				if (red_tick) {									
+					high &= (0b11111110 << shift_temp);
+					if ((high & (1 << (shift_temp + 1))) && !(high & (1 << (shift_temp + 2)))) {
+						shift_temp++;
+					}
+				}
+
+
+				// Change State Handler:
+				// Current State is red, if change light event occurs, go to green state
+
+				if ((flags & CHANGE_LIGHT) != 0) {
+					xEventGroupClearBits( Event_Flags, RED );
+					xEventGroupSetBits( Event_Flags, GREEN );
+
+					// Clear change bit
+					xEventGroupClearBits( Event_Flags, CHANGE_LIGHT );
+				}
+			}
+
+			// Write to the LEDs
+			// SPI outputs 3 bytes of data serially to the shift registers/
+			SPI1_Write(low);
+			SPI1_Write(mid);
+			SPI1_Write(high);
+
+			// Clear update lights bit
+			xEventGroupClearBits( Event_Flags, UPDATE_LIGHTS );
+			xEventGroupClearBits( Event_Flags, ADD_CAR );
+		}
+	}
 }
 
+/*-----------------------------------------------------------*/
+
+void vTrafficLightCallback( void* arg )
+{
+	// Set bits to signal TL needs to change
+	xEventGroupSetBits( Event_Flags, CHANGE_LIGHT );
+}
+/*-----------------------------------------------------------*/
+
+void vCarCallback( void* arg )
+{
+	// Set bits to signal a car needs to be added
+	xEventGroupSetBits( Event_Flags, ADD_CAR );
+}
+/*-----------------------------------------------------------*/
+
+void vUpdateLightsCallback( void* arg )
+{
+	// Set bits to signal LEDs need to be updated
+	xEventGroupSetBits( Event_Flags, UPDATE_LIGHTS );
+}
+/*-----------------------------------------------------------*/
+
+void vApplicationMallocFailedHook( void )
+{
+	/* The malloc failed hook is enabled by setting
+	configUSE_MALLOC_FAILED_HOOK to 1 in FreeRTOSConfig.h.
+
+	Called if a call to pvPortMalloc() fails because there is insufficient
+	free memory available in the FreeRTOS heap.  pvPortMalloc() is called
+	internally by FreeRTOS API functions that create tasks, queues, software
+	timers, and semaphores.  The size of the FreeRTOS heap is set by the
+	configTOTAL_HEAP_SIZE configuration constant in FreeRTOSConfig.h. */
+	for( ;; );
+}
 /*-----------------------------------------------------------*/
 
 void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName )
@@ -436,4 +454,29 @@ void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName 
 	corrupt. */
 	for( ;; );
 }
+/*-----------------------------------------------------------*/
 
+void vApplicationIdleHook( void )
+{
+volatile size_t xFreeStackSpace;
+
+	/* The idle task hook is enabled by setting configUSE_IDLE_HOOK to 1 in
+	FreeRTOSConfig.h.
+
+	This function is called on each cycle of the idle task.  In this case it
+	does nothing useful, other than report the amount of FreeRTOS heap that
+	remains unallocated. */
+	xFreeStackSpace = xPortGetFreeHeapSize();
+
+	if( xFreeStackSpace > 100 )
+	{
+		/* By now, the kernel has allocated everything it is going to, so
+		if there is a lot of heap remaining unallocated then
+		the value of configTOTAL_HEAP_SIZE in FreeRTOSConfig.h can be
+		reduced accordingly. */
+	}
+}
+
+
+
+//TODO: look at eventgroup api, possibly update how the event group is accessed.
