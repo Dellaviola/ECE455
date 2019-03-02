@@ -1,0 +1,15 @@
+SPI:
+    Spelling mistake
+    experimenting with baud rate to try and stop some led flickering, turns out a 1000 cycle delay was causing the flickering
+    MB vs LSB, LSB used because the data will display in the same order it is sent
+
+Timers:
+    Start the Timers
+
+Semaphores:
+    Do they even work?
+
+Queues and Yields:
+    No protection on the queues caused unexpected behaviour when changing potentiometer
+    Forcing the tasks to yield fixed this problem.
+
