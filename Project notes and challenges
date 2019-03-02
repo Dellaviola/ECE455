@@ -5,6 +5,8 @@ SPI:
 
 Timers:
     Start the Timers
+    Software timer callbacks cannot block
+    blocking ok in tasks, so event sync works.
 
 Semaphores:
     Do they even work?
@@ -13,3 +15,14 @@ Queues and Yields:
     No protection on the queues caused unexpected behaviour when changing potentiometer
     Forcing the tasks to yield fixed this problem.
 
+Event Bits:
+    Used to set events and track the output states
+    programmed in a deterministic fashion:
+        Event Bits are:
+            Set in callback functions
+            Used in multiple tasks
+            Cleared in task 4 ---- there should be some priority or protection, ensuring tasks 2 and 3 execute before 4
+
+            maybe set a sync bit after task 2 and 3.
+
+    Event bits, per documentation, are atomic operations by FreeRTOS implementation
