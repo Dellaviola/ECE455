@@ -36,6 +36,7 @@
 #define YELLOW	( 1 << 4 )
 #define RED		( 1 << 5 )
 
+
 //MASKS
 #define high_last 0b00000010
 #define mid_first 0b10000000
@@ -55,12 +56,13 @@ void vCarCallback( void* );
 void vUpdateLightsCallback( void* );
 void vPollButtonCallback( void* );
 
-void EXTI0_IRQHandler(void)
-void PedestrianHandler(void)
+//void EXTI0_IRQHandler(void);
+void PedestrianHandler(void);
 
 xQueueHandle Traffic_Flow_Queue = 0;
 EventGroupHandle_t Event_Flags;
-TimerHandle_t xTimers[ 3 ];
+TimerHandle_t xTimers[ 4 ];
+TickType_t xTime1, xTimeDelta;
 
 int main(void)
 {
@@ -230,6 +232,7 @@ static void Traffic_Light_Task( void *pvParameters )
 				}
 			}
 
+			xTime1 = xTaskGetTickCount();
 			// Let next task run
 			taskYIELD();
 		}
@@ -282,23 +285,34 @@ static void Traffic_Display_Task( void *pvParameters )
 					xEventGroupClearBits( Event_Flags, CHANGE_LIGHT );
 				}
 			}
-
-
 			else if ((flags & YELLOW) != 0)
 			{
+
 
 				low = low>>1;					//move low over
 				low |= ((mid & mid_last) << 6);		//add the first bit in
 
 
-				mid_temp = (mid & mid_first);
 				mid = mid >> 1;					//move mid over
 				mid &= mid_low;				    //clear the top 5 bits of mid
-				mid |= (((high & high_last) << 6) | (yellow_tl) | (mid_temp >> 4));
 
-				high = high >> 1;
-				if ((flags & ADD_CAR) == 0) high |= mid_first;
+				mid |= (1<<3);					//light immediately after traffic light is off
 
+				if (!red_tick) mid |= ((high & high_last) << 6); //if we arent building up traffic move last bit of high over
+
+				mid |= yellow_tl;									//update the traffic light colour
+
+				if (!(mid & mid_first)) red_tick++;				//check the first bit to determine state of traffic buildup
+																//if mid_7 is low then we need to build up traffic in the high byte
+				high = high >> 1;								//shift high over 1
+				if ((flags & ADD_CAR) == 0) high |= mid_first;				//check the add_car condition
+
+				if (red_tick) {
+					high &= (0b11111110 << shift_temp);
+					if ((high & (1 << (shift_temp + 1))) && !(high & (1 << (shift_temp + 2)))) {
+						shift_temp++;
+					}
+				}
 				// Set light to RED
 				if ((flags & CHANGE_LIGHT) != 0) {
 					xEventGroupClearBits( Event_Flags, YELLOW );
@@ -307,9 +321,8 @@ static void Traffic_Display_Task( void *pvParameters )
 					// Clear change bit
 					xEventGroupClearBits( Event_Flags, CHANGE_LIGHT );
 				}
+
 			}
-
-
 			else if ((flags & RED) != 0)
 			{
 
@@ -388,9 +401,9 @@ void vPollButtonCallback( void* arg )
 {
 	// Set bits to signal LEDs need to be updated
 	volatile static uint8_t debounce = 0;
-		
+
 	if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0)) debounce++;
-		
+
 	if (debounce > 5)
 	{
 		PedestrianHandler();
@@ -399,56 +412,59 @@ void vPollButtonCallback( void* arg )
 }
 /*-----------------------------------------------------------*/
 
-void EXTI0_IRQHandler(void)
-{
-    // Checks whether the interrupt from EXTI0 or not
-    if (EXTI_GetITStatus(EXTI_Line0))
-    {
-		// Clears the EXTI line pending bit
-		EXTI_ClearITPendingBit(EXTI_Line0);
-		
-        // goto the pedestrian handling function
-        PedestrianHandler();
-               
-        
-    }
-}
+//void EXTI0_IRQHandler(void)
+//{
+//    // Checks whether the interrupt from EXTI0 or not
+//    if (EXTI_GetITStatus(EXTI_Line0))
+//    {
+//		// Clears the EXTI line pending bit
+//		EXTI_ClearITPendingBit(EXTI_Line0);
+//
+//        // goto the pedestrian handling function
+//        PedestrianHandler();
+//
+//
+//    }
+//}
 /*-----------------------------------------------------------*/
 
 void PedestrianHandler(void)
 {
-	//set pedestrian event 
+	//set pedestrian event
 	//check timer remaining and state
 	//if red and remainder less than ticks*5, restart timer and extend to ticks*5
 	//if yellow continue
 	//if green and timer greater than ticks * 3, change timer to ticks *2
-	
+
 	uint8_t flags = 0;
-	
+
 	flags = xEventGroupGetBits( Event_Flags );
-	
-	if ((flags & GREEN) != 0 && pdMS_TO_TICKS(xTimerGetPeriod(xTimer[1]) > 2250)
+	xTimeDelta = xTimerGetExpiryTime(xTimers[1]) - xTime1;
+
+	if (((flags & GREEN) != 0) && (pdMS_TO_TICKS(xTimeDelta) > 2250))
 		{
-			xTimerStop(xTimer[1]);
-			xTimerChangePeriod(xTimer[1], pdMS_TO_TICKS(1500),	500);
-			
+
+
+			xTimerStop(xTimers[1],100);
+			xTimerChangePeriod(xTimers[1], pdMS_TO_TICKS(750),	500);
+
 		}
-		
-	if ((flags & RED) != 0 && pdMS_TO_TICKS(xTimerGetPeriod(xTimer[1]) < )
+
+	if (((flags & RED) != 0) && (pdMS_TO_TICKS(xTimeDelta) < 3700))
 		{
-			xTimerStop(xTimer[1]);
-			xTimerChangePeriod(xTimer[1], pdMS_TO_TICKS(1500),	3750);
-			
+
+			xTimerStop(xTimers[1],100);
+			xTimerChangePeriod(xTimers[1], pdMS_TO_TICKS(3750),	500);
+
 		}
-	
-	
+
+
 }
 /*-----------------------------------------------------------*/
 void vApplicationMallocFailedHook( void )
 {
 	/* The malloc failed hook is enabled by setting
 	configUSE_MALLOC_FAILED_HOOK to 1 in FreeRTOSConfig.h.
-
 	Called if a call to pvPortMalloc() fails because there is insufficient
 	free memory available in the FreeRTOS heap.  pvPortMalloc() is called
 	internally by FreeRTOS API functions that create tasks, queues, software
@@ -474,11 +490,10 @@ void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName 
 
 void vApplicationIdleHook( void )
 {
-volatile size_t xFreeStackSpace;
+	volatile size_t xFreeStackSpace;
 
 	/* The idle task hook is enabled by setting configUSE_IDLE_HOOK to 1 in
 	FreeRTOSConfig.h.
-
 	This function is called on each cycle of the idle task.  In this case it
 	does nothing useful, other than report the amount of FreeRTOS heap that
 	remains unallocated. */
