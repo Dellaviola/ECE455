@@ -25,10 +25,10 @@ void GPIO_ADC_Init(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	ADC_CommonInitTypeDef ADC_CommonInitStructure;
 
-	// Enable ADC Clock
+	// Enable ADC clock
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 
-	// Enable GPIOD Clock for ADC
+	// Enable GPIOD clock for ADC
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
 	// Initialize GPIO for ADC
@@ -40,7 +40,7 @@ void GPIO_ADC_Init(void)
 	// Initializing GPIO
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-	// Initialize Common ADC
+	// Initialize common ADC
 	ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
 	ADC_CommonInitStructure.ADC_Prescaler = ADC_Prescaler_Div2;
 	ADC_CommonInitStructure.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
@@ -58,12 +58,61 @@ void GPIO_ADC_Init(void)
 	// Initializing ADC
 	ADC_Init(ADC1, &ADC_InitStructure);
 
-	// Set Channel for ADC
+	// Set channel for ADC
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_11, 1, ADC_SampleTime_144Cycles);
 
 	// Enable ADC1
 	ADC_Cmd(ADC1, ENABLE);
 }
+
+void GPIOA_Init(void)
+{
+   /*
+	* PA0 --> UserButton
+	*/
+
+	// Enable clock
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+	// Set up SCK & MOSI
+	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitStruct.GPIO_Pin	= GPIO_Pin_0;
+	GPIO_InitStruct.GPIO_Mode	= GPIO_Mode_IN;
+	GPIO_InitStruct.GPIO_Speed	= GPIO_Speed_50MHz;
+	GPIO_InitStruct.GPIO_OType	= GPIO_OType_PP;
+	GPIO_InitStruct.GPIO_PuPd	= GPIO_PuPd_DOWN;
+	GPIO_Init(GPIOA, &GPIO_InitStruct);
+	
+	
+	// Uncomment to enable interrupts
+	
+	// SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource0);
+	
+	// EXTI_InitTypeDef EXTI_InitStruct;
+	// EXTI_InitStruct.EXTI_Line = EXTI_Line12;
+    // /* Enable interrupt */
+    // EXTI_InitStruct.EXTI_LineCmd = ENABLE;
+    // /* Interrupt mode */
+    // EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+    // /* Triggers on rising and falling edge */
+    // EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
+    // /* Add to EXTI */
+    // EXTI_Init(&EXTI_InitStruct);
+	
+	// NVIC_InitTypeDef NVIC_InitStruct;
+	// NVIC_InitStruct.NVIC_IRQChannel = EXTI0_IRQn;
+    // /* Set priority */
+    // NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x00;
+    // /* Set sub priority */
+    // NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x01;
+    // /* Enable interrupt */
+    // NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    // /* Add to NVIC */
+    // NVIC_Init(&NVIC_InitStruct);
+	
+
+}
+
 
 void GPIOB_Init(void)
 {
@@ -89,15 +138,6 @@ void GPIOB_Init(void)
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_SPI1);
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_SPI1);
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_SPI1);
-
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4;
-	GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource4, GPIO_AF_SPI1);
-
-	GPIOA->BSRRL |= GPIO_Pin_4;
 }
 
 void SPI1_Init(void)
@@ -123,7 +163,8 @@ void SPI1_Init(void)
 uint32_t Get_ADC_Value(void)
 {
 	ADC_SoftwareStartConv(ADC1);
-
+	
+	// Wait until conversion finishes
 	while (!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC));
 
 	return ADC_GetConversionValue(ADC1);
@@ -140,3 +181,4 @@ void SPI1_Write(uint16_t data)
 	//Wait until SPI1 is not busy
 	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET){;}
 }
+
