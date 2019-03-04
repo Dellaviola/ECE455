@@ -20,11 +20,14 @@
 /*-----------------------------------------------------------*/
 /* Definitions */
 
+// Constants --- System Speed
+#define tick_constant 	750
+
 // Flow Rate
-#define NO_TRAFFIC 	 0
-#define LOW_TRAFFIC  1
-#define MID_TRAFFIC  2
-#define HIGH_TRAFFIC 3
+#define NO_TRAFFIC 	 	0
+#define LOW_TRAFFIC  	1
+#define MID_TRAFFIC  	2
+#define HIGH_TRAFFIC 	3
 
 // Event Bits
 #define CHANGE_LIGHT 	( 1 << 0 )
@@ -44,9 +47,6 @@
 #define GREEN_TL 		0b00110000
 #define YELLOW_TL 		0b01010000
 #define RED_TL 			0b01100000
-
-// Constants
-#define tick_constant 	750
 
 // Prototypes
 static void Traffic_Flow_Task( void *pvParameters );
@@ -89,9 +89,9 @@ int main(void)
 	xEventGroupSetBits( Event_Flags, RED );
 
 	// Set up Software Timers
-	xTimers[0] = xTimerCreate( "Car_Timer", pdMS_TO_TICKS( 750 ), pdFALSE, ( void * ) 0, vCarCallback);
-	xTimers[1] = xTimerCreate( "TL_Timer", pdMS_TO_TICKS( 750 ), pdFALSE, ( void * ) 0, vTrafficLightCallback);
-	xTimers[2] = xTimerCreate( "Update_Timer", pdMS_TO_TICKS( 750 ), pdTRUE, ( void * ) 0, vUpdateLightsCallback);
+	xTimers[0] = xTimerCreate( "Car_Timer", pdMS_TO_TICKS( tick_constant ), pdFALSE, ( void * ) 0, vCarCallback);
+	xTimers[1] = xTimerCreate( "TL_Timer", pdMS_TO_TICKS( tick_constant ), pdFALSE, ( void * ) 0, vTrafficLightCallback);
+	xTimers[2] = xTimerCreate( "Update_Timer", pdMS_TO_TICKS( tick_constant ), pdTRUE, ( void * ) 0, vUpdateLightsCallback);
 	xTimers[3] = xTimerCreate( "Button", pdMS_TO_TICKS( 20 ), pdTRUE, ( void * ) 0, vPollButtonCallback);
 
 	// Setup tasks
@@ -168,21 +168,21 @@ static void Traffic_Creator_Task( void *pvParameters )
 			} else if (flow_rate == LOW_TRAFFIC) {
 				// Low
 				if ( xTimerIsTimerActive( xTimers[0] ) == pdFALSE ) {
-					xTimerChangePeriod( xTimers[0], pdMS_TO_TICKS( 4500 ), 500);
+					xTimerChangePeriod( xTimers[0], pdMS_TO_TICKS( tick_constant * 6 ), 500);
 				}
 			} else if (flow_rate == MID_TRAFFIC) {
 				// Mid
 				if ( xTimerIsTimerActive( xTimers[0] ) == pdFALSE ) {
-					xTimerChangePeriod( xTimers[0], pdMS_TO_TICKS( 3000 ), 500);
+					xTimerChangePeriod( xTimers[0], pdMS_TO_TICKS( tick_constant * 4), 500);
 				}
 			} else if (flow_rate == HIGH_TRAFFIC) {
 				// High
 				if ( xTimerIsTimerActive( xTimers[0] ) == pdFALSE ) {
-					xTimerChangePeriod( xTimers[0], pdMS_TO_TICKS( 1500 ), 500);
+					xTimerChangePeriod( xTimers[0], pdMS_TO_TICKS( tick_constant * 2 ), 500);
 				}
 			}
 		}
-		
+
 		// Let next task run
 		taskYIELD();
 	}
@@ -192,7 +192,7 @@ static void Traffic_Creator_Task( void *pvParameters )
 
 static void Traffic_Light_Task( void *pvParameters )
 {
-	
+
 	uint8_t flow_rate = 0;
 	uint32_t new_period = 0;
 	EventBits_t flags;
@@ -212,7 +212,7 @@ static void Traffic_Light_Task( void *pvParameters )
 				// Low
 				if ( xTimerIsTimerActive( xTimers[1] ) == pdFALSE ) {
 					// Calculate new period
-					new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 13);
+					new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 11);
 
 					xTimerChangePeriod( xTimers[1], pdMS_TO_TICKS( new_period ), 500);
 				}
@@ -220,7 +220,7 @@ static void Traffic_Light_Task( void *pvParameters )
 				// Mid
 				if ( xTimerIsTimerActive( xTimers[1] ) == pdFALSE ) {
 					// Calculate new period
-					new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 10);
+					new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 8);
 
 					xTimerChangePeriod( xTimers[1], pdMS_TO_TICKS( new_period ), 500);
 				}
@@ -228,7 +228,7 @@ static void Traffic_Light_Task( void *pvParameters )
 				// High
 				if ( xTimerIsTimerActive( xTimers[1] ) == pdFALSE ) {
 					// Calculate new period
-					new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 7);
+					new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 5);
 
 					xTimerChangePeriod( xTimers[1], pdMS_TO_TICKS( new_period ), 500);
 				}
@@ -236,7 +236,7 @@ static void Traffic_Light_Task( void *pvParameters )
 
 			// Track start time
 			xTime1 = xTaskGetTickCount();
-			
+
 			// Let next task run
 			taskYIELD();
 		}
@@ -248,12 +248,12 @@ static void Traffic_Light_Task( void *pvParameters )
 static void Traffic_Display_Task( void *pvParameters )
 {
 	EventBits_t flags;
-	
+
 	// Initialize all LEDs off
 	uint8_t high = 0b11111111;
 	uint8_t mid = 0b11111111;
 	uint8_t low = 0b11111111;
-	
+
 	uint8_t red_tick = 0;
 	uint8_t mid_temp = 0;
 	uint8_t shift_temp = 0;
@@ -265,31 +265,31 @@ static void Traffic_Display_Task( void *pvParameters )
 
 		// Check that it is time to update the lights
 		if ((flags & UPDATE_LIGHTS) != 0) {
-			
+
 			// Check current state
 			if ((flags & GREEN) != 0)
 			{
 				// Reset traffic buildup counters
 				red_tick = 0;
 				shift_temp = 0;
-				
+
 				// Recalculate the low byte
-				low = low >> 1;					
-				low |= ((mid & BIT2) << 6);		
+				low = low >> 1;
+				low |= ((mid & BIT2) << 6);
 
 				// Recalculate the middle byte
 				mid_temp = (mid & BIT7);
-				mid = mid >> 1;					
-				mid &= MID_LOW;	
+				mid = mid >> 1;
+				mid &= MID_LOW;
 				mid |= (((high & BIT2) << 6) | (GREEN_TL) | (mid_temp >> 4));
-				
+
 				// Recalculate the high byte
 				high = high >> 1;
 				if ((flags & ADD_CAR) == 0) high |= BIT7;
 
 				// Check that it is time to change states
 				if ((flags & CHANGE_LIGHT) != 0) {
-					
+
 					// Set light to YELLOW
 					xEventGroupClearBits( Event_Flags, GREEN );
 					xEventGroupSetBits( Event_Flags, YELLOW );
@@ -301,25 +301,25 @@ static void Traffic_Display_Task( void *pvParameters )
 			else if ((flags & YELLOW) != 0)
 			{
 				// Recalculate the low byte
-				low = low>>1;					
-				low |= ((mid & BIT2) << 6);		
+				low = low>>1;
+				low |= ((mid & BIT2) << 6);
 
 				// Recalculate the middle byte
-				mid = mid >> 1;					
-				mid &= MID_LOW;				    
-				mid |= (1<<3);					
+				mid = mid >> 1;
+				mid &= MID_LOW;
+				mid |= (1<<3);
 				mid |= YELLOW_TL;
-				
+
 				// Check the front of the traffic buildup
-				if (!red_tick) mid |= ((high & BIT2) << 6); 
+				if (!red_tick) mid |= ((high & BIT2) << 6);
 
 				// Increment the traffic buildup counter
-				if (!(mid & BIT7)) red_tick++;				
-							
+				if (!(mid & BIT7)) red_tick++;
+
 				// Recalculate the high byte
-				high = high >> 1;	
-				if ((flags & ADD_CAR) == 0) high |= BIT7;				
-				
+				high = high >> 1;
+				if ((flags & ADD_CAR) == 0) high |= BIT7;
+
 				// Traffic build up algorithm
 				if (red_tick) {
 					high &= (0b11111110 << shift_temp);
@@ -327,10 +327,10 @@ static void Traffic_Display_Task( void *pvParameters )
 						shift_temp++;
 					}
 				}
-				
+
 				// Check that it is time to change states
 				if ((flags & CHANGE_LIGHT) != 0) {
-					
+
 					// Set light to RED
 					xEventGroupClearBits( Event_Flags, YELLOW );
 					xEventGroupSetBits( Event_Flags, RED );
@@ -343,25 +343,25 @@ static void Traffic_Display_Task( void *pvParameters )
 			else if ((flags & RED) != 0)
 			{
 				// Recalculate the low byte
-				low = low>>1;					
-				low |= ((mid & BIT2) << 6);		
+				low = low>>1;
+				low |= ((mid & BIT2) << 6);
 
 				// Recalculate the middle byte
-				mid = mid >> 1;					
-				mid &= MID_LOW;				    
-				mid |= (1<<3);					
+				mid = mid >> 1;
+				mid &= MID_LOW;
+				mid |= (1<<3);
 				mid |= RED_TL;
-				
+
 				// Check the front of the traffic buildup
-				if (!red_tick) mid |= ((high & BIT2) << 6); 
+				if (!red_tick) mid |= ((high & BIT2) << 6);
 
 				// Increment the traffic buildup counter
-				if (!(mid & BIT7)) red_tick++;				
-							
+				if (!(mid & BIT7)) red_tick++;
+
 				// Recalculate the high byte
-				high = high >> 1;	
-				if ((flags & ADD_CAR) == 0) high |= BIT7;				
-				
+				high = high >> 1;
+				if ((flags & ADD_CAR) == 0) high |= BIT7;
+
 				// Traffic build up algorithm
 				if (red_tick) {
 					high &= (0b11111110 << shift_temp);
@@ -369,13 +369,13 @@ static void Traffic_Display_Task( void *pvParameters )
 						shift_temp++;
 					}
 				}
-				
+
 				// Check that it is time to change states
 				if ((flags & CHANGE_LIGHT) != 0) {
-					
+
 					// Set light to GREEN
-					xEventGroupClearBits( Event_Flags, YELLOW );
-					xEventGroupSetBits( Event_Flags, RED );
+					xEventGroupClearBits( Event_Flags, RED );
+					xEventGroupSetBits( Event_Flags, GREEN );
 
 					// Clear change bit
 					xEventGroupClearBits( Event_Flags, CHANGE_LIGHT );
@@ -424,13 +424,13 @@ void vPollButtonCallback( void* arg )
 
 	// Check for user button press
 	if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0)) debounce++;
-	
+
 	// Check for user button early release
 	if (!GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0)) debounce = 0;
 
 	// Debounce the button press
 	if (debounce > 5)
-	{	
+	{
 		// Reset debounce counter and run the pedestrian handler
 		debounce = 0;
 		PedestrianHandler();
@@ -459,21 +459,21 @@ void PedestrianHandler(void)
 
 	EventBits_t flags;
 	flags = xEventGroupGetBits( Event_Flags );
-	
+
 	// Calculate time remaining on timer
 	xTimeDelta = xTimerGetExpiryTime(xTimers[1]) - xTime1;
-	
+
 	// Pedestrian request on green condition
-	if (((flags & GREEN) != 0) && (pdMS_TO_TICKS(xTimeDelta) > 2250))
+	if (((flags & GREEN) != 0) && (pdMS_TO_TICKS(xTimeDelta) > (tick_constant * 3)))
 		{
 			xTimerStop(xTimers[1],100);
-			xTimerChangePeriod(xTimers[1], pdMS_TO_TICKS(750),	500);
+			xTimerChangePeriod(xTimers[1], pdMS_TO_TICKS(tick_constant), 500);
 		}
 	// Pedestrian request on red condition
-	if (((flags & RED) != 0) && (pdMS_TO_TICKS(xTimeDelta) < 3700))
+	if (((flags & RED) != 0) && (pdMS_TO_TICKS(xTimeDelta) < (tick_constant * 5)))
 		{
 			xTimerStop(xTimers[1],100);
-			xTimerChangePeriod(xTimers[1], pdMS_TO_TICKS(3750),	500);
+			xTimerChangePeriod(xTimers[1], pdMS_TO_TICKS(tick_constant * 4), 500);
 		}
 }
 /*-----------------------------------------------------------*/
