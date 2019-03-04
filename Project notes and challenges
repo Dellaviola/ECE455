@@ -10,7 +10,8 @@ Timers:
 
 Semaphores:
     Do they even work?
-
+    Need to give on declaration
+        
 Queues and Yields:
     No protection on the queues caused unexpected behaviour when changing potentiometer
     Forcing the tasks to yield fixed this problem.
