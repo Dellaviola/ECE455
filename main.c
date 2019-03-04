@@ -429,14 +429,14 @@ void PedestrianHandler(void)
 	
 	if ((flags & GREEN) != 0 && pdMS_TO_TICKS(xTimerGetPeriod(xTimer[1]) > 2250)
 		{
-
+			xTimerStop(xTimer[1]);
 			xTimerChangePeriod(xTimer[1], pdMS_TO_TICKS(1500),	500);
 			
 		}
 		
 	if ((flags & RED) != 0 && pdMS_TO_TICKS(xTimerGetPeriod(xTimer[1]) < )
 		{
-
+			xTimerStop(xTimer[1]);
 			xTimerChangePeriod(xTimer[1], pdMS_TO_TICKS(1500),	3750);
 			
 		}
