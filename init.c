@@ -65,6 +65,52 @@ void GPIO_ADC_Init(void)
 	ADC_Cmd(ADC1, ENABLE);
 }
 
+void GPIOA_Init(void)
+{
+   /*
+	* PA0---> UserButton
+	*/
+
+	// Enable clock
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+	// Set up SCK & MOSI
+	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitStruct.GPIO_Pin	= GPIO_Pin_0;
+	GPIO_InitStruct.GPIO_Mode	= GPIO_Mode_IN;
+	GPIO_InitStruct.GPIO_Speed	= GPIO_Speed_50MHz;
+	GPIO_InitStruct.GPIO_OType	= GPIO_OType_PP;
+	GPIO_InitStruct.GPIO_PuPd	= GPIO_PuPd_DOWN;
+	GPIO_Init(GPIOA, &GPIO_InitStruct);
+	
+	 SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource0);
+	
+	EXTI_InitTypeDef EXTI_InitStruct;
+	EXTI_InitStruct.EXTI_Line = EXTI_Line12;
+    /* Enable interrupt */
+    EXTI_InitStruct.EXTI_LineCmd = ENABLE;
+    /* Interrupt mode */
+    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+    /* Triggers on rising and falling edge */
+    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
+    /* Add to EXTI */
+    EXTI_Init(&EXTI_InitStruct);
+	
+	NVIC_InitTypeDef NVIC_InitStruct;
+	NVIC_InitStruct.NVIC_IRQChannel = EXTI0_IRQn;
+    /* Set priority */
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x00;
+    /* Set sub priority */
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x01;
+    /* Enable interrupt */
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    /* Add to NVIC */
+    NVIC_Init(&NVIC_InitStruct);
+	
+
+}
+
+
 void GPIOB_Init(void)
 {
    /*
@@ -90,14 +136,14 @@ void GPIOB_Init(void)
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_SPI1);
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_SPI1);
 
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+	// RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
-	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4;
-	GPIO_Init(GPIOA, &GPIO_InitStruct);
+	// GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4;
+	// GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource4, GPIO_AF_SPI1);
+	// GPIO_PinAFConfig(GPIOA, GPIO_PinSource4, GPIO_AF_SPI1);
 
-	GPIOA->BSRRL |= GPIO_Pin_4;
+	// GPIOA->BSRRL |= GPIO_Pin_4;
 }
 
 void SPI1_Init(void)
@@ -140,3 +186,4 @@ void SPI1_Write(uint16_t data)
 	//Wait until SPI1 is not busy
 	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET){;}
 }
+
