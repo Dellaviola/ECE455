@@ -206,8 +206,12 @@ static void Traffic_Light_Task( void *pvParameters )
 		if ( xQueueReceive(Traffic_Flow_Queue, &flow_rate, 1000) ) {
 			// Create traffic based on flow rate
 			if (flow_rate == NO_TRAFFIC) {
-				// Off
-				// Do nothing?
+				if ( xTimerIsTimerActive( xTimers[1] ) == pdFALSE ) {
+					// Calculate new period
+					new_period = ((flags & GREEN) != 0) ? (tick_constant * 3) : (tick_constant * 11);
+
+					xTimerChangePeriod( xTimers[1], pdMS_TO_TICKS( new_period ), 500);
+				}
 			} else if (flow_rate == LOW_TRAFFIC) {
 				// Low
 				if ( xTimerIsTimerActive( xTimers[1] ) == pdFALSE ) {
