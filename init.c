@@ -82,9 +82,9 @@ void GPIOA_Init(void)
 	GPIO_InitStruct.GPIO_OType	= GPIO_OType_PP;
 	GPIO_InitStruct.GPIO_PuPd	= GPIO_PuPd_DOWN;
 	GPIO_Init(GPIOA, &GPIO_InitStruct);
-	
+
 	// SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource0);
-	
+
 	// EXTI_InitTypeDef EXTI_InitStruct;
 	// EXTI_InitStruct.EXTI_Line = EXTI_Line12;
     // /* Enable interrupt */
@@ -95,7 +95,7 @@ void GPIOA_Init(void)
     // EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
     // /* Add to EXTI */
     // EXTI_Init(&EXTI_InitStruct);
-	
+
 	// NVIC_InitTypeDef NVIC_InitStruct;
 	// NVIC_InitStruct.NVIC_IRQChannel = EXTI0_IRQn;
     // /* Set priority */
@@ -106,7 +106,7 @@ void GPIOA_Init(void)
     // NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     // /* Add to NVIC */
     // NVIC_Init(&NVIC_InitStruct);
-	
+
 
 }
 
@@ -186,4 +186,3 @@ void SPI1_Write(uint16_t data)
 	//Wait until SPI1 is not busy
 	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET){;}
 }
-
