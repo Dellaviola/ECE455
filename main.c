@@ -53,6 +53,7 @@ static void Traffic_Display_Task( void *pvParameters );
 void vTrafficLightCallback( void* );
 void vCarCallback( void* );
 void vUpdateLightsCallback( void* );
+void vPollButtonCallback( void* );
 
 void EXTI0_IRQHandler(void)
 void PedestrianHandler(void)
@@ -85,6 +86,7 @@ int main(void)
 	xTimers[0] = xTimerCreate( "Car_Timer", pdMS_TO_TICKS( 750 ), pdFALSE, ( void * ) 0, vCarCallback);
 	xTimers[1] = xTimerCreate( "TL_Timer", pdMS_TO_TICKS( 750 ), pdFALSE, ( void * ) 0, vTrafficLightCallback);
 	xTimers[2] = xTimerCreate( "Update_Timer", pdMS_TO_TICKS( 750 ), pdTRUE, ( void * ) 0, vUpdateLightsCallback);
+	xTimers[3] = xTimerCreate( "Button", pdMS_TO_TICKS( 20 ), pdTRUE, ( void * ) 0, vPollButtonCallback);
 
 	// Start tasks
 	xTaskCreate( Traffic_Flow_Task, "Traffic_Flow", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
@@ -93,7 +95,7 @@ int main(void)
 	xTaskCreate( Traffic_Display_Task, "Traffic_Display", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
 	// Start timers
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		xTimerStart( xTimers[i], 100);
 	}
 
@@ -379,6 +381,21 @@ void vUpdateLightsCallback( void* arg )
 {
 	// Set bits to signal LEDs need to be updated
 	xEventGroupSetBits( Event_Flags, UPDATE_LIGHTS );
+}
+/*-----------------------------------------------------------*/
+
+void vPollButtonCallback( void* arg )
+{
+	// Set bits to signal LEDs need to be updated
+	volatile static uint8_t debounce = 0;
+		
+	if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0)) debounce++;
+		
+	if (debounce > 5)
+	{
+		PedestrianHandler();
+		debounce = 0;
+	}
 }
 /*-----------------------------------------------------------*/
 

@@ -83,29 +83,29 @@ void GPIOA_Init(void)
 	GPIO_InitStruct.GPIO_PuPd	= GPIO_PuPd_DOWN;
 	GPIO_Init(GPIOA, &GPIO_InitStruct);
 	
-	 SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource0);
+	// SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource0);
 	
-	EXTI_InitTypeDef EXTI_InitStruct;
-	EXTI_InitStruct.EXTI_Line = EXTI_Line12;
-    /* Enable interrupt */
-    EXTI_InitStruct.EXTI_LineCmd = ENABLE;
-    /* Interrupt mode */
-    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
-    /* Triggers on rising and falling edge */
-    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
-    /* Add to EXTI */
-    EXTI_Init(&EXTI_InitStruct);
+	// EXTI_InitTypeDef EXTI_InitStruct;
+	// EXTI_InitStruct.EXTI_Line = EXTI_Line12;
+    // /* Enable interrupt */
+    // EXTI_InitStruct.EXTI_LineCmd = ENABLE;
+    // /* Interrupt mode */
+    // EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+    // /* Triggers on rising and falling edge */
+    // EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
+    // /* Add to EXTI */
+    // EXTI_Init(&EXTI_InitStruct);
 	
-	NVIC_InitTypeDef NVIC_InitStruct;
-	NVIC_InitStruct.NVIC_IRQChannel = EXTI0_IRQn;
-    /* Set priority */
-    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x00;
-    /* Set sub priority */
-    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x01;
-    /* Enable interrupt */
-    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
-    /* Add to NVIC */
-    NVIC_Init(&NVIC_InitStruct);
+	// NVIC_InitTypeDef NVIC_InitStruct;
+	// NVIC_InitStruct.NVIC_IRQChannel = EXTI0_IRQn;
+    // /* Set priority */
+    // NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x00;
+    // /* Set sub priority */
+    // NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x01;
+    // /* Enable interrupt */
+    // NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    // /* Add to NVIC */
+    // NVIC_Init(&NVIC_InitStruct);
 	
 
 }
